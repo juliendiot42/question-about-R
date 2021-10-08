@@ -122,3 +122,26 @@ But I don't understand why...
 If someone reading this understand what is happening on "Case 2" I would be very happy to know it. You can open [an issue in this repo.](https://github.com/juliendiot42/question-about-R/issues).
 
 Thank you very much.
+
+
+# session info:
+
+
+
+<details>
+<summary style="margin-bottom: 10px;">Session Information (click to expand)</summary>
+<!-- Place an empty line before the chunk ! -->
+
+```{r sessionInfo, echo=FALSE}
+  options(max.print = 10000)
+  if (Sys.info()["sysname"] == "Linux") {
+    cat("\nCPU: ")
+    cat(unique(system("awk -F': ' '/model name/{print $2}' /proc/cpuinfo", intern = T)))
+    cat("\nMemory total size: ")
+    cat(as.numeric(system("awk '/MemTotal/ {print $2}' /proc/meminfo", intern = T))*10^(-6), "GB")
+  }
+  cat("\n\n\nSession information:\n")
+  print(sessionInfo(), locale = FALSE)
+```
+
+</details>

@@ -152,3 +152,38 @@ be very happy to know it. You can open [an issue in this
 repo.](https://github.com/juliendiot42/question-about-R/issues).
 
 Thank you very much.
+
+# session info:
+
+<details>
+<summary style="margin-bottom: 10px;">
+Session Information (click to expand)
+</summary>
+<!-- Place an empty line before the chunk ! -->
+
+    ## 
+    ## CPU: AMD Ryzen 5 3600X 6-Core Processor
+    ## Memory total size: 32.7965 GB
+
+    ## 
+    ## 
+    ## 
+    ## Session information:
+
+    ## R version 4.1.1 (2021-08-10)
+    ## Platform: x86_64-pc-linux-gnu (64-bit)
+    ## Running under: Pop!_OS 21.04
+    ## 
+    ## Matrix products: default
+    ## BLAS/LAPACK: /opt/OpenBLAS/lib/libopenblas_zenp-r0.3.17.so
+    ## 
+    ## attached base packages:
+    ## [1] stats     graphics  grDevices utils     datasets  methods   base     
+    ## 
+    ## loaded via a namespace (and not attached):
+    ##  [1] compiler_4.1.1  magrittr_2.0.1  fastmap_1.1.0   tools_4.1.1    
+    ##  [5] htmltools_0.5.2 yaml_2.2.1      stringi_1.7.4   rmarkdown_2.11 
+    ##  [9] knitr_1.36      stringr_1.4.0   xfun_0.26       digest_0.6.28  
+    ## [13] rlang_0.4.11    evaluate_0.14
+
+</details>
