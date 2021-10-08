@@ -145,6 +145,105 @@ But I don’t understand why…
 
 </details>
 
+## Case 3
+
+Now let’s get rid of the `source` function:
+
+``` r
+createSetup_3 <- function(funDefFile, y) {
+  
+  f1 <- function(x) { 
+    x^2 
+  } 
+  
+  f <- function(x) { 
+    f1(x) + 1 
+  } 
+  
+  z <- paste(y, y) # some complex stuff
+  list(param = z,
+       fun = f)
+}
+```
+
+``` r
+mySetup <- createSetup_3('functionsDefinition.R', "toto")
+saveRDS(mySetup, 'savedSetup-3.rds')
+```
+
+Again I load my new setup:
+
+``` r
+mySetup <- readRDS("savedSetup-3.rds")
+mySetup$fun(10)
+```
+
+**Question: What will happen?**
+
+<details>
+<summary>
+Click to see the anwser
+</summary>
+
+``` sh
+R -q --vanilla -e '
+tryCatch({
+mySetup <- readRDS("savedSetup-2.rds")
+mySetup$fun(10)
+}, error = function(err) {
+  message(err)
+})
+'
+```
+
+    ## WARNING: ignoring environment value of R_HOME
+    ## > 
+    ## > tryCatch({
+    ## + mySetup <- readRDS("savedSetup-2.rds")
+    ## + mySetup$fun(10)
+    ## + }, error = function(err) {
+    ## +   message(err)
+    ## + })
+    ## [1] 101
+    ## > 
+    ## > 
+    ## >
+
+It also work, but this would be expected because it should behave like
+case 2.
+
+</details>
+
+## Other information
+
+Let’s have a look on the `setup`s size:
+
+``` r
+setup1 <- createSetup('functionsDefinition.R', "toto")
+setup2 <- createSetup_2('functionsDefinition.R', "toto")
+setup3 <- createSetup_3('functionsDefinition.R', "toto")
+
+object.size(setup1)
+object.size(setup2)
+object.size(setup3)
+```
+
+    ## 1368 bytes
+    ## 1368 bytes
+    ## 9992 bytes
+
+``` r
+digest::digest(setup1)
+digest::digest(setup2)
+digest::digest(setup3)
+```
+
+    ## [1] "424ce4d9012908990559a7c15110e04a"
+    ## [1] "210f7065526604412277d8ebe891f64c"
+    ## [1] "aa6b62a55001f70942a0f8cce1d7fe42"
+
+`setup2` and `setup3` are different
+
 ## Any help would be much appreciated
 
 If someone reading this understand what is happening on “Case 2” I would
@@ -164,12 +263,9 @@ Session Information (click to expand)
     ## 
     ## CPU: AMD Ryzen 5 3600X 6-Core Processor
     ## Memory total size: 32.7965 GB
-
-    ## 
     ## 
     ## 
     ## Session information:
-
     ## R version 4.1.1 (2021-08-10)
     ## Platform: x86_64-pc-linux-gnu (64-bit)
     ## Running under: Pop!_OS 21.04

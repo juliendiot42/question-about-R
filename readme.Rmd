@@ -4,7 +4,8 @@ output: github_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE,
+                      results = "hold")
 ```
 
 
@@ -116,6 +117,87 @@ mySetup$fun(10)
 But I don't understand why...
 
 </details>
+
+
+## Case 3
+
+
+Now let's get rid of the `source` function:
+
+```{r}
+createSetup_3 <- function(funDefFile, y) {
+  
+  f1 <- function(x) { 
+    x^2 
+  } 
+  
+  f <- function(x) { 
+    f1(x) + 1 
+  } 
+  
+  z <- paste(y, y) # some complex stuff
+  list(param = z,
+       fun = f)
+}
+```
+
+```{r}
+mySetup <- createSetup_3('functionsDefinition.R', "toto")
+saveRDS(mySetup, 'savedSetup-3.rds')
+```
+
+Again I load my new setup:
+
+```r
+mySetup <- readRDS("savedSetup-3.rds")
+mySetup$fun(10)
+```
+
+**Question: What will happen?**
+
+
+<details><summary>Click to see the anwser</summary>
+
+```{sh}
+R -q --vanilla -e '
+tryCatch({
+mySetup <- readRDS("savedSetup-2.rds")
+mySetup$fun(10)
+}, error = function(err) {
+  message(err)
+})
+'
+```
+
+It also work, but this would be expected because it should behave like case 2.
+
+</details>
+
+## Other information
+
+
+Let's have a look on the `setup`s size:
+```{r}
+setup1 <- createSetup('functionsDefinition.R', "toto")
+setup2 <- createSetup_2('functionsDefinition.R', "toto")
+setup3 <- createSetup_3('functionsDefinition.R', "toto")
+
+object.size(setup1)
+object.size(setup2)
+object.size(setup3)
+```
+
+
+```{r}
+digest::digest(setup1)
+digest::digest(setup2)
+digest::digest(setup3)
+
+```
+
+
+`setup2` and `setup3` are different
+
 
 ## Any help would be much appreciated
 
