@@ -117,5 +117,8 @@ But I don't understand why...
 
 </details>
 
+## Any help would be much appreciated
+
+If someone reading this understand what is happening on "Case 2" I would be very happy to know it. You can open [an issue in this repo.](https://github.com/juliendiot42/question-about-R/issues).
 
 Thank you very much.
