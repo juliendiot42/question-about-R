@@ -176,27 +176,67 @@ It also work, but this would be expected because it should behave like case 2.
 ## Other information
 
 
-Let's have a look on the `setup`s size:
+Let's have a look on the objects'/setup files' size and hash:
+
 ```{r}
 setup1 <- createSetup('functionsDefinition.R', "toto")
 setup2 <- createSetup_2('functionsDefinition.R', "toto")
 setup3 <- createSetup_3('functionsDefinition.R', "toto")
 
+setup1_2 <- readRDS('savedSetup-1.rds')
+setup2_2 <- readRDS('savedSetup-2.rds')
+setup3_2 <- readRDS('savedSetup-3.rds')
+
 object.size(setup1)
+object.size(setup1_2)
+
 object.size(setup2)
+object.size(setup2_2)
+
 object.size(setup3)
+object.size(setup3_2)
+
 ```
 
 
 ```{r}
 digest::digest(setup1)
+digest::digest(setup1_2)
+identical(setup1, setup1_2)
+all.equal(setup1, setup1_2)
+
 digest::digest(setup2)
+digest::digest(setup2_2)
+identical(setup2, setup2_2)
+all.equal(setup2, setup2_2)
+
+
 digest::digest(setup3)
+digest::digest(setup3_2)
+identical(setup3, setup3_2)
+all.equal(setup3, setup3_2)
 
 ```
 
+```{r}
+all.equal(setup2, setup3)
+```
 
-`setup2` and `setup3` are different
+```{r}
+tools::md5sum('savedSetup-1.rds')
+tools::md5sum('savedSetup-2.rds')
+tools::md5sum('savedSetup-3.rds')
+
+file.info(c('savedSetup-1.rds','savedSetup-2.rds','savedSetup-3.rds'))$size
+```
+
+
+
+```{r}
+str(setup1$fun)
+str(setup2$fun)
+str(setup3$fun)
+```
 
 
 ## Any help would be much appreciated

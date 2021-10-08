@@ -216,33 +216,98 @@ case 2.
 
 ## Other information
 
-Let’s have a look on the `setup`s size:
+Let’s have a look on the objects’/setup files’ size and hash:
 
 ``` r
 setup1 <- createSetup('functionsDefinition.R', "toto")
 setup2 <- createSetup_2('functionsDefinition.R', "toto")
 setup3 <- createSetup_3('functionsDefinition.R', "toto")
 
+setup1_2 <- readRDS('savedSetup-1.rds')
+setup2_2 <- readRDS('savedSetup-2.rds')
+setup3_2 <- readRDS('savedSetup-3.rds')
+
 object.size(setup1)
+object.size(setup1_2)
+
 object.size(setup2)
+object.size(setup2_2)
+
 object.size(setup3)
+object.size(setup3_2)
 ```
 
+    ## 1368 bytes
+    ## 1368 bytes
     ## 1368 bytes
     ## 1368 bytes
     ## 9992 bytes
+    ## 5304 bytes
 
 ``` r
 digest::digest(setup1)
+digest::digest(setup1_2)
+identical(setup1, setup1_2)
+all.equal(setup1, setup1_2)
+
 digest::digest(setup2)
+digest::digest(setup2_2)
+identical(setup2, setup2_2)
+all.equal(setup2, setup2_2)
+
+
 digest::digest(setup3)
+digest::digest(setup3_2)
+identical(setup3, setup3_2)
+all.equal(setup3, setup3_2)
 ```
 
     ## [1] "424ce4d9012908990559a7c15110e04a"
+    ## [1] "424ce4d9012908990559a7c15110e04a"
+    ## [1] TRUE
+    ## [1] TRUE
     ## [1] "210f7065526604412277d8ebe891f64c"
-    ## [1] "aa6b62a55001f70942a0f8cce1d7fe42"
+    ## [1] "fae1491a4efd38412f9c297e80035ae7"
+    ## [1] FALSE
+    ## [1] TRUE
+    ## [1] "8d09841a01653f8c44cf51b400e3f795"
+    ## [1] "0a8552761a3373d3027a4a6ea1a42747"
+    ## [1] FALSE
+    ## [1] TRUE
 
-`setup2` and `setup3` are different
+``` r
+all.equal(setup2, setup3)
+```
+
+    ## [1] TRUE
+
+``` r
+tools::md5sum('savedSetup-1.rds')
+tools::md5sum('savedSetup-2.rds')
+tools::md5sum('savedSetup-3.rds')
+
+file.info(c('savedSetup-1.rds','savedSetup-2.rds','savedSetup-3.rds'))$size
+```
+
+    ##                   savedSetup-1.rds 
+    ## "ed79f3a45ace281a5131388fecbd4486" 
+    ##                   savedSetup-2.rds 
+    ## "d6d6cd0864cf8e63f43fcc39ec342457" 
+    ##                   savedSetup-3.rds 
+    ## "b5a6df230af79a6048d804dcc778e975" 
+    ## [1]  146  248 1766
+
+``` r
+str(setup1$fun)
+str(setup2$fun)
+str(setup3$fun)
+```
+
+    ## function (x)  
+    ## function (x)  
+    ## function (x)  
+    ##  - attr(*, "srcref")= 'srcref' int [1:8] 7 8 9 3 8 3 7 9
+    ##   ..- attr(*, "srcfile")=Classes 'srcfilecopy', 'srcfile' <environment: 0x55c8d324d6c8>
 
 ## Any help would be much appreciated
 
