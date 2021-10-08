@@ -173,6 +173,57 @@ It also work, but this would be expected because it should behave like case 2.
 
 </details>
 
+
+
+## Case 4
+
+
+Now let's source in a new environment:
+
+```{r}
+createSetup_4 <- function(funDefFile, y) {
+  env <- new.env()
+  source(funDefFile, env)
+  
+  z <- paste(y, y) # some complex stuff
+  list(param = z,
+       fun = env$f)
+}
+```
+
+```{r}
+mySetup <- createSetup_4('functionsDefinition.R', "toto")
+saveRDS(mySetup, 'savedSetup-4.rds')
+```
+
+Again I load my new setup:
+
+```r
+mySetup <- readRDS("savedSetup-4.rds")
+mySetup$fun(10)
+```
+
+**Question: What will happen?**
+
+
+<details><summary>Click to see the anwser</summary>
+
+```{sh}
+R -q --vanilla -e '
+tryCatch({
+mySetup <- readRDS("savedSetup-4.rds")
+mySetup$fun(10)
+}, error = function(err) {
+  message(err)
+})
+'
+```
+
+It also work, but this would be expected because it should behave like case 2.
+
+</details>
+
+
 ## Other information
 
 
@@ -182,10 +233,12 @@ Let's have a look on the objects'/setup files' size and hash:
 setup1 <- createSetup('functionsDefinition.R', "toto")
 setup2 <- createSetup_2('functionsDefinition.R', "toto")
 setup3 <- createSetup_3('functionsDefinition.R', "toto")
+setup4 <- createSetup_4('functionsDefinition.R', "toto")
 
 setup1_2 <- readRDS('savedSetup-1.rds')
 setup2_2 <- readRDS('savedSetup-2.rds')
 setup3_2 <- readRDS('savedSetup-3.rds')
+setup4_2 <- readRDS('savedSetup-4.rds')
 
 object.size(setup1)
 object.size(setup1_2)
@@ -196,6 +249,8 @@ object.size(setup2_2)
 object.size(setup3)
 object.size(setup3_2)
 
+object.size(setup4)
+object.size(setup4_2)
 ```
 
 
@@ -216,18 +271,24 @@ digest::digest(setup3_2)
 identical(setup3, setup3_2)
 all.equal(setup3, setup3_2)
 
+digest::digest(setup4)
+digest::digest(setup4_2)
+identical(setup4, setup4_2)
+all.equal(setup4, setup4_2)
 ```
 
-```{r}
-all.equal(setup2, setup3)
-```
+
 
 ```{r}
 tools::md5sum('savedSetup-1.rds')
 tools::md5sum('savedSetup-2.rds')
 tools::md5sum('savedSetup-3.rds')
+tools::md5sum('savedSetup-4.rds')
 
-file.info(c('savedSetup-1.rds','savedSetup-2.rds','savedSetup-3.rds'))$size
+file.info(c('savedSetup-1.rds',
+            'savedSetup-2.rds',
+            'savedSetup-3.rds',
+            'savedSetup-2.rds'))$size
 ```
 
 
@@ -236,6 +297,19 @@ file.info(c('savedSetup-1.rds','savedSetup-2.rds','savedSetup-3.rds'))$size
 str(setup1$fun)
 str(setup2$fun)
 str(setup3$fun)
+str(setup4$fun)
+```
+
+
+
+
+```{r}
+all.equal(setup2, setup3)
+all.equal(setup2, setup4)
+```
+
+```{r}
+all.equal(setup1, setup2)
 ```
 
 

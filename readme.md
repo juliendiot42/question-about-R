@@ -214,6 +214,69 @@ case 2.
 
 </details>
 
+## Case 4
+
+Now let’s source in a new environment:
+
+``` r
+createSetup_4 <- function(funDefFile, y) {
+  env <- new.env()
+  source(funDefFile, env)
+  
+  z <- paste(y, y) # some complex stuff
+  list(param = z,
+       fun = env$f)
+}
+```
+
+``` r
+mySetup <- createSetup_4('functionsDefinition.R', "toto")
+saveRDS(mySetup, 'savedSetup-4.rds')
+```
+
+Again I load my new setup:
+
+``` r
+mySetup <- readRDS("savedSetup-4.rds")
+mySetup$fun(10)
+```
+
+**Question: What will happen?**
+
+<details>
+<summary>
+Click to see the anwser
+</summary>
+
+``` sh
+R -q --vanilla -e '
+tryCatch({
+mySetup <- readRDS("savedSetup-4.rds")
+mySetup$fun(10)
+}, error = function(err) {
+  message(err)
+})
+'
+```
+
+    ## WARNING: ignoring environment value of R_HOME
+    ## > 
+    ## > tryCatch({
+    ## + mySetup <- readRDS("savedSetup-4.rds")
+    ## + mySetup$fun(10)
+    ## + }, error = function(err) {
+    ## +   message(err)
+    ## + })
+    ## [1] 101
+    ## > 
+    ## > 
+    ## >
+
+It also work, but this would be expected because it should behave like
+case 2.
+
+</details>
+
 ## Other information
 
 Let’s have a look on the objects’/setup files’ size and hash:
@@ -222,10 +285,12 @@ Let’s have a look on the objects’/setup files’ size and hash:
 setup1 <- createSetup('functionsDefinition.R', "toto")
 setup2 <- createSetup_2('functionsDefinition.R', "toto")
 setup3 <- createSetup_3('functionsDefinition.R', "toto")
+setup4 <- createSetup_4('functionsDefinition.R', "toto")
 
 setup1_2 <- readRDS('savedSetup-1.rds')
 setup2_2 <- readRDS('savedSetup-2.rds')
 setup3_2 <- readRDS('savedSetup-3.rds')
+setup4_2 <- readRDS('savedSetup-4.rds')
 
 object.size(setup1)
 object.size(setup1_2)
@@ -235,6 +300,9 @@ object.size(setup2_2)
 
 object.size(setup3)
 object.size(setup3_2)
+
+object.size(setup4)
+object.size(setup4_2)
 ```
 
     ## 1368 bytes
@@ -243,6 +311,8 @@ object.size(setup3_2)
     ## 1368 bytes
     ## 9992 bytes
     ## 5304 bytes
+    ## 1368 bytes
+    ## 1368 bytes
 
 ``` r
 digest::digest(setup1)
@@ -260,6 +330,11 @@ digest::digest(setup3)
 digest::digest(setup3_2)
 identical(setup3, setup3_2)
 all.equal(setup3, setup3_2)
+
+digest::digest(setup4)
+digest::digest(setup4_2)
+identical(setup4, setup4_2)
+all.equal(setup4, setup4_2)
 ```
 
     ## [1] "424ce4d9012908990559a7c15110e04a"
@@ -270,23 +345,25 @@ all.equal(setup3, setup3_2)
     ## [1] "fae1491a4efd38412f9c297e80035ae7"
     ## [1] FALSE
     ## [1] TRUE
-    ## [1] "8d09841a01653f8c44cf51b400e3f795"
-    ## [1] "0a8552761a3373d3027a4a6ea1a42747"
+    ## [1] "72f4b07b84f85577940b9c026933d628"
+    ## [1] "77deccbf7373ce64460330b9aa88f0d0"
     ## [1] FALSE
     ## [1] TRUE
-
-``` r
-all.equal(setup2, setup3)
-```
-
+    ## [1] "28691772934279dea7071795200982a1"
+    ## [1] "18f2532a54122c3c1016a88e7e2082fa"
+    ## [1] FALSE
     ## [1] TRUE
 
 ``` r
 tools::md5sum('savedSetup-1.rds')
 tools::md5sum('savedSetup-2.rds')
 tools::md5sum('savedSetup-3.rds')
+tools::md5sum('savedSetup-4.rds')
 
-file.info(c('savedSetup-1.rds','savedSetup-2.rds','savedSetup-3.rds'))$size
+file.info(c('savedSetup-1.rds',
+            'savedSetup-2.rds',
+            'savedSetup-3.rds',
+            'savedSetup-2.rds'))$size
 ```
 
     ##                   savedSetup-1.rds 
@@ -294,20 +371,50 @@ file.info(c('savedSetup-1.rds','savedSetup-2.rds','savedSetup-3.rds'))$size
     ##                   savedSetup-2.rds 
     ## "d6d6cd0864cf8e63f43fcc39ec342457" 
     ##                   savedSetup-3.rds 
-    ## "b5a6df230af79a6048d804dcc778e975" 
-    ## [1]  146  248 1766
+    ## "6d5471289e96c9ca87de08eb42206664" 
+    ##                   savedSetup-4.rds 
+    ## "cc21b281a90c9e334368aeb3da2ac850" 
+    ## [1]  146  248 1767  248
 
 ``` r
 str(setup1$fun)
 str(setup2$fun)
 str(setup3$fun)
+str(setup4$fun)
 ```
 
     ## function (x)  
     ## function (x)  
     ## function (x)  
     ##  - attr(*, "srcref")= 'srcref' int [1:8] 7 8 9 3 8 3 7 9
-    ##   ..- attr(*, "srcfile")=Classes 'srcfilecopy', 'srcfile' <environment: 0x55c8d324d6c8>
+    ##   ..- attr(*, "srcfile")=Classes 'srcfilecopy', 'srcfile' <environment: 0x556f9e27a390> 
+    ## function (x)
+
+``` r
+all.equal(setup2, setup3)
+all.equal(setup2, setup4)
+```
+
+    ## [1] TRUE
+    ## [1] "Component \"fun\": Length mismatch: comparison on first 2 components"
+
+``` r
+all.equal(setup1, setup2)
+```
+
+    ##  [1] "Component \"fun\": Names: 5 string mismatches"                                
+    ##  [2] "Component \"fun\": Length mismatch: comparison on first 5 components"         
+    ##  [3] "Component \"fun\": Component 1: target, current do not match when deparsed"   
+    ##  [4] "Component \"fun\": Component 2: target, current do not match when deparsed"   
+    ##  [5] "Component \"fun\": Component 3: Modes of target, current: function, character"
+    ##  [6] "Component \"fun\": Component 3: target, current do not match when deparsed"   
+    ##  [7] "Component \"fun\": Component 3: 'current' is not an environment"              
+    ##  [8] "Component \"fun\": Component 4: Modes of target, current: function, character"
+    ##  [9] "Component \"fun\": Component 4: target, current do not match when deparsed"   
+    ## [10] "Component \"fun\": Component 4: 'current' is not an environment"              
+    ## [11] "Component \"fun\": Component 5: Modes of target, current: function, character"
+    ## [12] "Component \"fun\": Component 5: target, current do not match when deparsed"   
+    ## [13] "Component \"fun\": Component 5: 'current' is not an environment"
 
 ## Any help would be much appreciated
 
