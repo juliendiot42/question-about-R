@@ -59,7 +59,6 @@ mySetup$fun(10)
 '
 ```
 
-    ## WARNING: ignoring environment value of R_HOME
     ## > 
     ## > tryCatch({
     ## + mySetup <- readRDS("savedSetup-1.rds")
@@ -126,7 +125,6 @@ mySetup$fun(10)
 '
 ```
 
-    ## WARNING: ignoring environment value of R_HOME
     ## > 
     ## > tryCatch({
     ## + mySetup <- readRDS("savedSetup-2.rds")
@@ -141,11 +139,204 @@ mySetup$fun(10)
 
 **It works !**
 
-But I don’t understand why…
+Indeed, this code is similar to:
+
+``` r
+createFun <- function(y){
+  function(x){
+    x + y
+  }
+}
+
+foo10 <- createFun(10)
+foo42 <- createFun(42)
+y <- 1
+
+foo10(0)
+```
+
+    ## [1] 10
+
+``` r
+foo42(0)
+```
+
+    ## [1] 42
+
+In this case, the functions `foo10` and `foo42` look for `y` in
+different environments. (*in R the values of free variables are searched
+for in the environment in which the function was defined*)
+
+Moreover, according to this blog post: [How and why to return functions
+in
+R](https://www.r-bloggers.com/2015/04/how-and-why-to-return-functions-in-r/)
+(section: *The nature of closure driven reference leaks*)
+
+> In R when objects are serialized they save their lexical environment
+> (and any parent environments) up until the global environment. The
+> global environment is not saved in these situations. When a function
+> is re-loaded it brings in new copies of its saved lexical environment
+> chain and the top of this chain is altered to have a current
+> environment as its parent. This is made clearer by the following two
+> code examples:
+
+> Example 1: R closure fails to durably bind items in the global
+> environment (due to serialization hack).
+
+``` r
+f <- function() { print(x) }
+x <- 5
+f()
+## [1] 5
+saveRDS(f,file='f1.rds')
+rm(list=ls())
+f = readRDS('f1.rds')
+f()
+## Error in print(x) : object 'x' not found
+```
+
+> Example 2: R closure seems to bind items in intermediate lexical
+> environments.
+
+``` r
+g <- function() {
+  x <- 5
+  function() {
+    print(x)
+  }
+}
+f <- g()
+saveRDS(f,file='f2.rds')
+rm(list=ls())
+f = readRDS('f2.rds')
+f()
+## [1] 5
+```
+
+### Warning
+
+Using such enclosure can make the function to store a lot of unnecessary
+information depending where they had been defined:
+
+(I have modify the function `f` to print all the variable it has access
+to, except the global environment, see `functionDefinition_2.R`)
+
+``` r
+createSetup_x <- function(funDefFile, y) {
+  
+  source(funDefFile, environment())
+  
+  # next variables are not necessary for later and especially not for `f`
+  tempVar_1 <- "a"
+  tempVar_2 <- "b"
+  tempVar_3 <- "c"
+  
+  z <- paste(y, tempVar_1, tempVar_2, tempVar_3) # some complex stuff
+  list(param = z,
+       fun = f)
+}
+```
+
+``` r
+mySetup <- createSetup_x("functionsDefinition_2.R", "toto")
+saveRDS(mySetup, 'savedSetup-x.rds')
+```
+
+``` sh
+R -q --vanilla -e '
+tryCatch({
+mySetup <- readRDS("savedSetup-x.rds")
+mySetup$fun(10)
+}, error = function(err) {
+  message(err)
+})
+'
+```
+
+    ## > 
+    ## > tryCatch({
+    ## + mySetup <- readRDS("savedSetup-x.rds")
+    ## + mySetup$fun(10)
+    ## + }, error = function(err) {
+    ## +   message(err)
+    ## + })
+    ## <environment: 0x558af660fed0>
+    ## [1] "env" "x"  
+    ## <environment: 0x558af65fee68>
+    ## [1] "f"          "f1"         "funDefFile" "tempVar_1"  "tempVar_2" 
+    ## [6] "tempVar_3"  "y"          "z"         
+    ## [1] 101
+    ## > 
+    ## > 
+    ## >
+
+Here we can see that `f` had saved the values of `funDefFile`,
+`tempVar_1`,`tempVar_2`, `tempVar_3`, `y` and `z`.
+
+Indeed it had been defined in the function `createSetup_x` in which we
+can find those variable.
+
+We can avoid that by sourcing in an empty new environment:
+
+``` r
+createSetup_y <- function(funDefFile, y) {
+  
+  env <- new.env(parent = globalenv())
+  source(funDefFile, env)
+  
+  # next variables are not necessary for later and especially not for `f`
+  tempVar_1 <- "a"
+  tempVar_2 <- "b"
+  tempVar_3 <- "c"
+  
+  z <- paste(y, tempVar_1, tempVar_2, tempVar_3) # some complex stuff
+  list(param = z,
+       fun = env$f)
+}
+```
+
+``` r
+mySetup <- createSetup_y("functionsDefinition_2.R", "toto")
+saveRDS(mySetup, 'savedSetup-y.rds')
+```
+
+``` sh
+R -q --vanilla -e '
+tryCatch({
+mySetup <- readRDS("savedSetup-y.rds")
+mySetup$fun(10)
+}, error = function(err) {
+  message(err)
+})
+'
+```
+
+    ## > 
+    ## > tryCatch({
+    ## + mySetup <- readRDS("savedSetup-y.rds")
+    ## + mySetup$fun(10)
+    ## + }, error = function(err) {
+    ## +   message(err)
+    ## + })
+    ## <environment: 0x55eded2f3250>
+    ## [1] "env" "x"  
+    ## <environment: 0x55eded2e1e68>
+    ## [1] "f"  "f1"
+    ## [1] 101
+    ## > 
+    ## > 
+    ## >
 
 </details>
 
-## Case 3
+## Other similar cases
+
+<details>
+<summary>
+Click to expand
+</summary>
+
+### Case 3
 
 Now let’s get rid of the `source` function:
 
@@ -196,7 +387,6 @@ mySetup$fun(10)
 '
 ```
 
-    ## WARNING: ignoring environment value of R_HOME
     ## > 
     ## > tryCatch({
     ## + mySetup <- readRDS("savedSetup-2.rds")
@@ -214,7 +404,7 @@ case 2.
 
 </details>
 
-## Case 4
+### Case 4
 
 Now let’s source in a new environment:
 
@@ -259,7 +449,6 @@ mySetup$fun(10)
 '
 ```
 
-    ## WARNING: ignoring environment value of R_HOME
     ## > 
     ## > tryCatch({
     ## + mySetup <- readRDS("savedSetup-4.rds")
@@ -272,12 +461,11 @@ mySetup$fun(10)
     ## > 
     ## >
 
-It also work, but this would be expected because it should behave like
-case 2.
+It also works
 
 </details>
 
-## Other information
+### Other information
 
 Let’s have a look on the objects’/setup files’ size and hash:
 
@@ -345,8 +533,8 @@ all.equal(setup4, setup4_2)
     ## [1] "fae1491a4efd38412f9c297e80035ae7"
     ## [1] FALSE
     ## [1] TRUE
-    ## [1] "72f4b07b84f85577940b9c026933d628"
-    ## [1] "77deccbf7373ce64460330b9aa88f0d0"
+    ## [1] "829e4f604fe0c7a02f42f2fdb9b64f10"
+    ## [1] "3ad72750021c4586d6fdc7b85d050374"
     ## [1] FALSE
     ## [1] TRUE
     ## [1] "28691772934279dea7071795200982a1"
@@ -367,14 +555,14 @@ file.info(c('savedSetup-1.rds',
 ```
 
     ##                   savedSetup-1.rds 
-    ## "ed79f3a45ace281a5131388fecbd4486" 
+    ## "302fe17168ef4e8ec779092fd6fe711c" 
     ##                   savedSetup-2.rds 
-    ## "d6d6cd0864cf8e63f43fcc39ec342457" 
+    ## "ed22d0a1464c30544f68796ae600d93d" 
     ##                   savedSetup-3.rds 
-    ## "6d5471289e96c9ca87de08eb42206664" 
+    ## "7fd89ec79844fe92d55a8230382202f7" 
     ##                   savedSetup-4.rds 
-    ## "cc21b281a90c9e334368aeb3da2ac850" 
-    ## [1]  146  248 1767  248
+    ## "b2038bbb0eb9a8d7b130c2db37e5d274" 
+    ## [1]  145  248 1744  248
 
 ``` r
 str(setup1$fun)
@@ -387,7 +575,7 @@ str(setup4$fun)
     ## function (x)  
     ## function (x)  
     ##  - attr(*, "srcref")= 'srcref' int [1:8] 7 8 9 3 8 3 7 9
-    ##   ..- attr(*, "srcfile")=Classes 'srcfilecopy', 'srcfile' <environment: 0x556f9e27a390> 
+    ##   ..- attr(*, "srcfile")=Classes 'srcfilecopy', 'srcfile' <environment: 0x555eccdb99a8> 
     ## function (x)
 
 ``` r
@@ -396,62 +584,37 @@ all.equal(setup2, setup4)
 ```
 
     ## [1] TRUE
-    ## [1] "Component \"fun\": Length mismatch: comparison on first 2 components"
+    ## [1] TRUE
 
 ``` r
 all.equal(setup1, setup2)
 ```
 
-    ##  [1] "Component \"fun\": Names: 5 string mismatches"                                
-    ##  [2] "Component \"fun\": Length mismatch: comparison on first 5 components"         
-    ##  [3] "Component \"fun\": Component 1: target, current do not match when deparsed"   
-    ##  [4] "Component \"fun\": Component 2: target, current do not match when deparsed"   
-    ##  [5] "Component \"fun\": Component 3: Modes of target, current: function, character"
-    ##  [6] "Component \"fun\": Component 3: target, current do not match when deparsed"   
-    ##  [7] "Component \"fun\": Component 3: 'current' is not an environment"              
-    ##  [8] "Component \"fun\": Component 4: Modes of target, current: function, character"
-    ##  [9] "Component \"fun\": Component 4: target, current do not match when deparsed"   
-    ## [10] "Component \"fun\": Component 4: 'current' is not an environment"              
-    ## [11] "Component \"fun\": Component 5: Modes of target, current: function, character"
-    ## [12] "Component \"fun\": Component 5: target, current do not match when deparsed"   
-    ## [13] "Component \"fun\": Component 5: 'current' is not an environment"
+    ## [1] TRUE
 
-## Any help would be much appreciated
-
-If someone reading this understand what is happening on “Case 2” I would
-be very happy to know it. You can open [an issue in this
-repo.](https://github.com/juliendiot42/question-about-R/issues).
-
-Thank you very much.
+</details>
 
 # session info:
 
-<details>
-<summary style="margin-bottom: 10px;">
-Session Information (click to expand)
-</summary>
-<!-- Place an empty line before the chunk ! -->
-
     ## 
-    ## CPU: AMD Ryzen 5 3600X 6-Core Processor
-    ## Memory total size: 32.7965 GB
+    ## CPU: AMD Ryzen Threadripper 3990X 64-Core Processor
+    ## Memory total size: 263.8572 GB
     ## 
     ## 
     ## Session information:
-    ## R version 4.1.1 (2021-08-10)
+    ## R version 4.0.2 (2020-06-22)
     ## Platform: x86_64-pc-linux-gnu (64-bit)
-    ## Running under: Pop!_OS 21.04
+    ## Running under: Ubuntu 20.04.3 LTS
     ## 
     ## Matrix products: default
-    ## BLAS/LAPACK: /opt/OpenBLAS/lib/libopenblas_zenp-r0.3.17.so
+    ## BLAS:   /usr/local/lib/R/lib/libRblas.so
+    ## LAPACK: /usr/local/lib/R/lib/libRlapack.so
     ## 
     ## attached base packages:
     ## [1] stats     graphics  grDevices utils     datasets  methods   base     
     ## 
     ## loaded via a namespace (and not attached):
-    ##  [1] compiler_4.1.1  magrittr_2.0.1  fastmap_1.1.0   tools_4.1.1    
-    ##  [5] htmltools_0.5.2 yaml_2.2.1      stringi_1.7.4   rmarkdown_2.11 
-    ##  [9] knitr_1.36      stringr_1.4.0   xfun_0.26       digest_0.6.28  
-    ## [13] rlang_0.4.11    evaluate_0.14
-
-</details>
+    ##  [1] compiler_4.0.2  magrittr_2.0.1  tools_4.0.2     htmltools_0.5.1
+    ##  [5] yaml_2.2.1      stringi_1.5.3   rmarkdown_2.6   knitr_1.30     
+    ##  [9] stringr_1.4.0   xfun_0.20       digest_0.6.27   rlang_0.4.10   
+    ## [13] evaluate_0.14

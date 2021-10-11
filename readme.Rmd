@@ -114,12 +114,163 @@ mySetup$fun(10)
 
 **It works !**
 
-But I don't understand why...
+Indeed, this code is similar to:
+
+```{r results='markup'}
+createFun <- function(y){
+  function(x){
+    x + y
+  }
+}
+
+foo10 <- createFun(10)
+foo42 <- createFun(42)
+y <- 1
+
+foo10(0)
+foo42(0)
+```
+
+In this case, the functions `foo10` and `foo42` look for `y` in different environments. (*in R the values of free variables are searched for in the environment in which the function was defined*)
+
+Moreover, according to this blog post: [How and why to return functions in R](https://www.r-bloggers.com/2015/04/how-and-why-to-return-functions-in-r/) (section: *The nature of closure driven reference leaks*)
+
+> In R when objects are serialized they save their lexical environment (and any parent environments) up until the global environment. The global environment is not saved in these situations. When a function is re-loaded it brings in new copies of its saved lexical environment chain and the top of this chain is altered to have a current environment as its parent. This is made clearer by the following two code examples:
+
+> Example 1: R closure fails to durably bind items in the global environment (due to serialization hack).
+
+
+```r
+f <- function() { print(x) }
+x <- 5
+f()
+## [1] 5
+saveRDS(f,file='f1.rds')
+rm(list=ls())
+f = readRDS('f1.rds')
+f()
+## Error in print(x) : object 'x' not found
+```
+
+> Example 2: R closure seems to bind items in intermediate lexical environments.
+
+
+```r
+g <- function() {
+  x <- 5
+  function() {
+    print(x)
+  }
+}
+f <- g()
+saveRDS(f,file='f2.rds')
+rm(list=ls())
+f = readRDS('f2.rds')
+f()
+## [1] 5
+```
+
+
+
+### Warning
+
+Using such enclosure can make the function to store a lot of unnecessary information depending where they had been defined:
+
+(I have modify the function `f` to print all the variable it has access to, except the global environment, see `functionDefinition_2.R`)
+
+```{r}
+createSetup_x <- function(funDefFile, y) {
+  
+  source(funDefFile, environment())
+  
+  # next variables are not necessary for later and especially not for `f`
+  tempVar_1 <- "a"
+  tempVar_2 <- "b"
+  tempVar_3 <- "c"
+  
+  z <- paste(y, tempVar_1, tempVar_2, tempVar_3) # some complex stuff
+  list(param = z,
+       fun = f)
+}
+```
+
+```{r}
+mySetup <- createSetup_x("functionsDefinition_2.R", "toto")
+saveRDS(mySetup, 'savedSetup-x.rds')
+```
+
+
+```{sh}
+R -q --vanilla -e '
+tryCatch({
+mySetup <- readRDS("savedSetup-x.rds")
+mySetup$fun(10)
+}, error = function(err) {
+  message(err)
+})
+'
+```
+
+
+Here we can see that `f` had saved the values of `funDefFile`, `tempVar_1`,`tempVar_2`, `tempVar_3`, `y` and `z`.
+
+Indeed it had been defined in the function `createSetup_x` in which we can find those variable.
+
+
+We can avoid that by sourcing in an empty new environment:
+
+
+
+```{r}
+createSetup_y <- function(funDefFile, y) {
+  
+  env <- new.env(parent = globalenv())
+  source(funDefFile, env)
+  
+  # next variables are not necessary for later and especially not for `f`
+  tempVar_1 <- "a"
+  tempVar_2 <- "b"
+  tempVar_3 <- "c"
+  
+  z <- paste(y, tempVar_1, tempVar_2, tempVar_3) # some complex stuff
+  list(param = z,
+       fun = env$f)
+}
+```
+
+```{r}
+mySetup <- createSetup_y("functionsDefinition_2.R", "toto")
+saveRDS(mySetup, 'savedSetup-y.rds')
+```
+
+
+```{sh}
+R -q --vanilla -e '
+tryCatch({
+mySetup <- readRDS("savedSetup-y.rds")
+mySetup$fun(10)
+}, error = function(err) {
+  message(err)
+})
+'
+```
+
+
+
+
+
+
 
 </details>
 
 
-## Case 3
+
+
+## Other similar cases
+
+<details><summary>Click to expand</summary>
+
+### Case 3
 
 
 Now let's get rid of the `source` function:
@@ -175,7 +326,7 @@ It also work, but this would be expected because it should behave like case 2.
 
 
 
-## Case 4
+### Case 4
 
 
 Now let's source in a new environment:
@@ -219,12 +370,12 @@ mySetup$fun(10)
 '
 ```
 
-It also work, but this would be expected because it should behave like case 2.
+It also works
 
 </details>
 
 
-## Other information
+### Other information
 
 
 Let's have a look on the objects'/setup files' size and hash:
@@ -312,21 +463,13 @@ all.equal(setup2, setup4)
 all.equal(setup1, setup2)
 ```
 
-
-## Any help would be much appreciated
-
-If someone reading this understand what is happening on "Case 2" I would be very happy to know it. You can open [an issue in this repo.](https://github.com/juliendiot42/question-about-R/issues).
-
-Thank you very much.
+</details>
 
 
 # session info:
 
 
 
-<details>
-<summary style="margin-bottom: 10px;">Session Information (click to expand)</summary>
-<!-- Place an empty line before the chunk ! -->
 
 ```{r sessionInfo, echo=FALSE}
   options(max.print = 10000)
@@ -339,5 +482,3 @@ Thank you very much.
   cat("\n\n\nSession information:\n")
   print(sessionInfo(), locale = FALSE)
 ```
-
-</details>
